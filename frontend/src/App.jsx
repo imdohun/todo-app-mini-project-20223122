@@ -38,7 +38,7 @@ function App() {
 
   const toggleTodo = async (id, completed) => {
     try {
-      const res = await axios.put(`${API_URL}/${id}`, { completed: !completed })
+      const res = await axios.put(`${API_URL}?id=${id}`, { completed: !completed })
       setTodos(todos.map(todo => todo._id === id ? res.data : todo))
     } catch (err) {
       console.error('수정 실패:', err)
@@ -47,7 +47,7 @@ function App() {
 
   const deleteTodo = async (id) => {
     try {
-      await axios.delete(`${API_URL}/${id}`)
+      await axios.delete(`${API_URL}?id=${id}`)
       setTodos(todos.filter(todo => todo._id !== id))
     } catch (err) {
       console.error('삭제 실패:', err)
