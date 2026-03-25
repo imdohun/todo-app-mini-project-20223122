@@ -1,36 +1,102 @@
-# 풀스택 Todo 리스트 앱
+# 풀스택 Todo 리스트 앱 개발 보고서
 
-React + Vite + Express + MongoDB Atlas + Vercel
+**과목**: 소프트웨어공학  
+**학번**: 20223122  
+**이름**: 임도훈  
+**제출일**: 2026년 4월 10일
 
-## 프로젝트 구조
+---
+
+## 1. 프로젝트 개요
+
+본 프로젝트는 React + Vite 프론트엔드, Express 백엔드, MongoDB Atlas 데이터베이스를 활용하여 풀스택 Todo 리스트 애플리케이션을 개발하고 Vercel에 배포하는 과제이다.
+
+**배포 URL**: https://todo-app-mini-project-20223122.vercel.app
+
+---
+
+## 2. 기술 스택
+
+| 구분 | 기술 | 선정 이유 |
+|------|------|-----------|
+| 프론트엔드 | React + Vite | 빠른 개발 속도, 컴포넌트 기반 구조 |
+| 백엔드 | Node.js + Express | JavaScript 통일, 간단한 REST API 구현 |
+| 데이터베이스 | MongoDB Atlas | 무료 클라우드 DB, NoSQL로 유연한 스키마 |
+| 배포 | Vercel | GitHub 연동 자동 배포, 서버리스 지원 |
+| 스타일링 | Tailwind CSS | 빠른 UI 개발, 유틸리티 기반 |
+
+---
+
+## 3. 구현 기능 (MVP)
+
+- **Todo 추가**: 제목을 입력하여 새로운 할 일을 추가
+- **Todo 목록 보기**: 저장된 할 일 목록을 조회
+- **Todo 완료 체크**: 체크박스로 완료 상태 토글
+- **Todo 삭제**: 불필요한 할 일 삭제
+
+---
+
+## 4. 프로젝트 구조
+
 ```
 todo-app/
-├── frontend/    # React + Vite
-├── backend/     # Express API
-└── vercel.json  # Vercel 배포 설정
+├── frontend/          # React + Vite 프론트엔드
+│   ├── src/
+│   │   ├── App.jsx    # 메인 UI 컴포넌트
+│   │   └── index.css  # Tailwind CSS 설정
+│   └── package.json
+├── backend/           # Express 백엔드 (로컬 개발용)
+│   ├── index.js       # REST API 서버
+│   └── .env           # MongoDB 연결 문자열
+├── api/               # Vercel 서버리스 함수
+│   └── todos.js       # API 엔드포인트
+├── vercel.json        # Vercel 배포 설정
+└── README.md
 ```
 
-## 기술 스택
-- **Frontend**: React + Vite + Tailwind CSS
-- **Backend**: Node.js + Express
-- **Database**: MongoDB Atlas
-- **Deploy**: Vercel
+---
 
-## 기능
-- Todo 추가
-- Todo 목록 보기
-- Todo 완료 체크
-- Todo 삭제
+## 5. 어려웠던 점
 
-## 실행 방법
-### 백엔드
-```bash
-cd backend
-npm run dev
-```
+### 5-1. Git 브랜치명 불일치 문제
+Vercel이 기본적으로 `main` 브랜치를 참조하는데, 로컬에서는 `master` 브랜치로 커밋하고 있었다. 이로 인해 GitHub에 푸시한 코드가 Vercel에 반영되지 않는 문제가 발생했다. `git branch -M main` 명령어로 브랜치명을 변경하여 해결하였다.
 
-### 프론트엔드
-```bash
-cd frontend
-npm run dev
-```
+### 5-2. Vercel 서버리스 API 라우팅
+초기에는 Express 서버를 그대로 Vercel에 배포하려 했으나, 서버리스 환경에서는 기존 방식이 동작하지 않았다. `api/` 폴더에 별도의 서버리스 함수를 만들고, `vercel.json`에서 라우팅을 설정하는 방식으로 변경하여 해결하였다.
+
+### 5-3. API 경로 방식 차이
+로컬 개발 시에는 `/api/todos/:id` 형태의 경로 파라미터를 사용했지만, Vercel 서버리스 함수에서는 `/api/todos?id=:id` 형태의 쿼리 파라미터를 사용해야 했다. 프론트엔드의 API 호출 코드를 쿼리 파라미터 방식으로 수정하여 해결하였다.
+
+---
+
+## 6. AI(ChatGPT/opencode) 활용 방법
+
+본 프로젝트에서 AI를 다음과 같이 활용하였다:
+
+1. **코드 생성**: React 컴포넌트, Express API 코드, MongoDB 스키마 등 기본 코드 구조를 AI에게 요청하여 빠르게 생성하였다.
+
+2. **에러 디버깅**: Git 브랜치 불일치, Vercel 배포 실패 등 에러가 발생했을 때, 에러 메시지를 AI에게 공유하여 원인을 분석하고 해결 방법을 안내받았다.
+
+3. **설정 파일 작성**: `vercel.json`, `.env`, `package.json` 등 설정 파일의 올바른 구문과 옵션을 AI에게 확인받았다.
+
+4. **단계별 가이드**: 프로젝트 진행 순서와 각 단계별 필요한 작업을 AI가 체계적으로 안내하여 효율적으로 진행할 수 있었다.
+
+---
+
+## 7. 배운 점
+
+1. **풀스택 개발 프로세스**: 프론트엔드, 백엔드, 데이터베이스를 연결하는 전체 흐름을 경험하였다.
+
+2. **클라우드 서비스 활용**: MongoDB Atlas(클라우드 DB), Vercel(클라우드 배포) 등 실제 서비스에 활용되는 클라우드 플랫폼을 사용해보았다.
+
+3. **Git/GitHub 실습**: 버전 관리의 중요性和 브랜치 관리의 기본을 배웠다.
+
+4. **문제 해결 능력**: 배포 과정에서 발생하는 다양한 에러를 해결하면서 디버깅 능력이 향상되었다.
+
+5. **AI 협업**: AI를 단순 코드 복사 도구가 아닌, 문제 해결의 파트너로 활용하는 방법을 배웠다.
+
+---
+
+## 8. 결론
+
+본 프로젝트를 통해 풀스택 웹 애플리케이션 개발의 전 과정을 경험할 수 있었다. 특히 로컬 개발 환경에서 클라우드 배포까지의 과정에서 예상치 못한 문제들이 발생했지만, AI의 도움과 공식 문서를 참고하여 해결할 수 있었다. 앞으로도 다양한 프로젝트를 통해 실무 역량을 키워나가고 싶다.
