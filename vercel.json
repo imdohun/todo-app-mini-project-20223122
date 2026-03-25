@@ -1,33 +1,10 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "api/todos.js",
-      "use": "@vercel/node"
-    },
-    {
-      "src": "frontend/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "dist"
-      }
-    }
-  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "frontend/dist",
+  "framework": "vite",
   "routes": [
-    {
-      "src": "/api/todos",
-      "dest": "/api/todos.js"
-    },
-    {
-      "src": "/api/todos/(.*)",
-      "dest": "/api/todos.js?id=$1"
-    },
-    {
-      "handle": "filesystem"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
-    }
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/frontend/$1" }
   ]
 }
