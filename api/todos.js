@@ -1,67 +1,143 @@
-const mongoose = require('mongoose');
+const crypto = require('crypto')
+const mongoose = require('mongoose')
 
-// MongoDB 연결
-const connectDB = async () => {
-  if (mongoose.connections[0].readyState) return;
-  await mongoose.connect(process.env.MONGODB_URI);
-};
-
-// Todo 스키마 & 모델
 const todoSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true, trim: true },
   completed: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now }
-});
-const Todo = mongoose.model('Todo', todoSchema);
+})
+
+const Todo = mongoose.models.Todo || mongoose.model('Todo', todoSchema)
+
+global.todosMemoryStore = global.todosMemoryStore || []
+global.dbConnectionPromise = global.dbConnectionPromise || null
+global.useMemoryStore = global.useMemoryStore || false
+
+const connectDB = async () => {
+  if (global.useMemoryStore) return false
+
+  if (!process.env.MONGODB_URI) {
+    global.useMemoryStore = true
+    console.warn('MONGODB_URI is not set. Falling back to memory store.')
+    return false
+  }
+
+  if (mongoose.connection.readyState === 1) return true
+
+  try {
+    global.dbConnectionPromise =
+      global.dbConnectionPromise || mongoose.connect(process.env.MONGODB_URI)
+
+    await global.dbConnectionPromise
+    return true
+  } catch (error) {
+    global.dbConnectionPromise = null
+    global.useMemoryStore = true
+    console.warn(`MongoDB connection failed. Falling back to memory store: ${error.message}`)
+    return false
+  }
+}
+
+const createMemoryTodo = (title) => ({
+  _id: crypto.randomUUID(),
+  title,
+  completed: false,
+  createdAt: new Date().toISOString()
+})
+
+const handleMemoryStore = (req, res) => {
+  const { method } = req
+  const id = req.query.id
+
+  if (method === 'GET' && !id) {
+    return res.status(200).json(global.todosMemoryStore)
+  }
+
+  if (method === 'POST') {
+    const title = req.body?.title?.trim()
+    if (!title) return res.status(400).json({ error: 'Title is required' })
+
+    const newTodo = createMemoryTodo(title)
+    global.todosMemoryStore = [newTodo, ...global.todosMemoryStore]
+    return res.status(201).json(newTodo)
+  }
+
+  if (method === 'PUT' && id) {
+    const completed = Boolean(req.body?.completed)
+    const todo = global.todosMemoryStore.find((item) => item._id === id)
+
+    if (!todo) return res.status(404).json({ error: 'Todo not found' })
+
+    todo.completed = completed
+    return res.status(200).json(todo)
+  }
+
+  if (method === 'DELETE' && id) {
+    const previousLength = global.todosMemoryStore.length
+    global.todosMemoryStore = global.todosMemoryStore.filter((todo) => todo._id !== id)
+
+    if (global.todosMemoryStore.length === previousLength) {
+      return res.status(404).json({ error: 'Todo not found' })
+    }
+
+    return res.status(200).json({ message: 'Deleted' })
+  }
+
+  return res.status(405).json({ error: 'Method not allowed' })
+}
 
 module.exports = async (req, res) => {
-  // CORS 설정
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
 
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).end()
   }
 
   try {
-    await connectDB();
+    const isDatabaseConnected = await connectDB()
 
-    const { method } = req;
-    const id = req.query.id;
+    if (!isDatabaseConnected) {
+      return handleMemoryStore(req, res)
+    }
 
-    // 전체 목록 조회
+    const { method } = req
+    const id = req.query.id
+
     if (method === 'GET' && !id) {
-      const todos = await Todo.find().sort({ createdAt: -1 });
-      return res.status(200).json(todos);
+      const todos = await Todo.find().sort({ createdAt: -1 })
+      return res.status(200).json(todos)
     }
 
-    // Todo 추가
     if (method === 'POST') {
-      const { title } = req.body;
-      if (!title) return res.status(400).json({ error: '제목이 필요합니다' });
-      const newTodo = new Todo({ title });
-      await newTodo.save();
-      return res.status(201).json(newTodo);
+      const title = req.body?.title?.trim()
+      if (!title) return res.status(400).json({ error: 'Title is required' })
+
+      const newTodo = await Todo.create({ title })
+      return res.status(201).json(newTodo)
     }
 
-    // Todo 수정
     if (method === 'PUT' && id) {
-      const { completed } = req.body;
-      const todo = await Todo.findByIdAndUpdate(id, { completed }, { new: true });
-      if (!todo) return res.status(404).json({ error: 'Todo를 찾을 수 없습니다' });
-      return res.status(200).json(todo);
+      const todo = await Todo.findByIdAndUpdate(
+        id,
+        { completed: Boolean(req.body?.completed) },
+        { new: true }
+      )
+
+      if (!todo) return res.status(404).json({ error: 'Todo not found' })
+      return res.status(200).json(todo)
     }
 
-    // Todo 삭제
     if (method === 'DELETE' && id) {
-      const todo = await Todo.findByIdAndDelete(id);
-      if (!todo) return res.status(404).json({ error: 'Todo를 찾을 수 없습니다' });
-      return res.status(200).json({ message: '삭제 완료' });
+      const todo = await Todo.findByIdAndDelete(id)
+
+      if (!todo) return res.status(404).json({ error: 'Todo not found' })
+      return res.status(200).json({ message: 'Deleted' })
     }
 
-    return res.status(405).json({ error: '지원하지 않는 메서드입니다' });
-  } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return res.status(405).json({ error: 'Method not allowed' })
+  } catch (error) {
+    return res.status(500).json({ error: error.message })
   }
-};
+}
